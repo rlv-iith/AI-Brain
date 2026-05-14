@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+model_shards/
+model_offload/
+*.pt
+*.safetensors
+.venv/
+venv/
+*.egg-info/
+dist/

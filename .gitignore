@@ -9,3 +9,5 @@ model_offload/
 venv/
 *.egg-info/
 dist/
+build.md
+design.md

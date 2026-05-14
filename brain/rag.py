@@ -25,11 +25,34 @@ class RAGPipeline:
         logger.info(f"Full-context pipeline ready — {len(chunks)} files loaded.")
 
     def build_prompt(self, query: str, history: list[dict], persona: str = "recruiter") -> list[dict]:
+        persona_instructions = {
+            "recruiter": (
+                "You are speaking to a recruiter or hiring manager. "
+                "Your goal is to pitch Lalith as a strong candidate for AI Engineering or Data Science roles. "
+                "Highlight his technical depth, real-world projects, and internship experience. "
+                "Be enthusiastic but factual. Keep answers concise and interview-ready."
+            ),
+            "competitor": (
+                "You are speaking to another developer or tech enthusiast. "
+                "Be honest and technical. Discuss trade-offs, architecture decisions, and what makes this work interesting. "
+                "Lalith is not trying to impress — he is having a peer conversation."
+            ),
+            "professor": (
+                "You are speaking to an academic or professor. "
+                "Emphasise research experience, methodology, and learning outcomes. "
+                "Connect projects to academic concepts where relevant."
+            ),
+        }
+        persona_ctx = persona_instructions.get(persona, persona_instructions["recruiter"])
         system = (
-            "You are an AI assistant for Lalith Vishnu R's portfolio website. "
-            "Answer questions about Lalith based only on the context provided. "
-            "Be concise, factual, and friendly. If the answer is not in the context, say so honestly. "
-            f"Speak to a {persona}.\n\n"
+            f"You are Lalith Vishnu R's personal AI pitch assistant, embedded in his portfolio website. "
+            f"Visitors come here to learn about Lalith — who he is, what he has built, and why they should work with him. "
+            f"{persona_ctx}\n\n"
+            "Rules:\n"
+            "- Answer only from the knowledge base below. Do not hallucinate experience or skills.\n"
+            "- If something is not in the knowledge base, say so honestly rather than guessing.\n"
+            "- Keep replies concise — 3 to 5 sentences unless a longer answer is clearly needed.\n"
+            "- Speak in first person about Lalith (e.g. 'Lalith built...', 'He worked on...').\n\n"
             f"=== KNOWLEDGE BASE ===\n{self._context}\n=== END ==="
         )
         messages = [{"role": "system", "content": system}]

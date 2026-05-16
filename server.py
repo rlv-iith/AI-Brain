@@ -111,6 +111,18 @@ def health():
     }
 
 
+async def _log_to_backend(data: dict):
+    backend_url = os.getenv("BACKEND_URL", "").rstrip("/")
+    if not backend_url:
+        return
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5) as c:
+            await c.post(f"{backend_url}/ai-log", json=data)
+    except Exception:
+        pass
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     if not req.message.strip():
@@ -128,6 +140,18 @@ async def chat(req: ChatRequest):
 
     global _last_competition
     _last_competition = result.get("competition", [])
+
+    providers_tried = ",".join(r["provider"] for r in result.get("competition", []))
+    asyncio.create_task(_log_to_backend({
+        "token":           getattr(req, "token", ""),
+        "session_id":      getattr(req, "session_id", ""),
+        "query":           req.message[:150],
+        "provider":        result["provider"],
+        "mode":            os.getenv("ROUTER_MODE", "RACE"),
+        "latency_ms":      result["latency_ms"],
+        "providers_tried": providers_tried,
+        "reply_preview":   result["reply"][:100],
+    }))
 
     return ChatResponse(
         reply      = result["reply"],

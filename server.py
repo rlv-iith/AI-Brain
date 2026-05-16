@@ -180,14 +180,15 @@ async def chat(req: ChatRequest):
 
     providers_tried = ",".join(r["provider"] for r in result.get("competition", []))
     asyncio.create_task(_log_to_backend({
-        "token":           getattr(req, "token", ""),
-        "session_id":      getattr(req, "session_id", ""),
+        "token":           req.token,
+        "session_id":      req.session_id,
         "query":           req.message[:150],
         "provider":        result["provider"],
-        "mode":            os.getenv("ROUTER_MODE", "RACE"),
+        "mode":            req.mode,
         "latency_ms":      result["latency_ms"],
         "providers_tried": providers_tried,
-        "reply_preview":   result["reply"][:100],
+        "reply_preview":   result["reply"][:200],
+        "full_reply":      result["reply"],
     }))
 
     return ChatResponse(

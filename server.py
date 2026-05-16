@@ -85,9 +85,12 @@ app.add_middleware(
 # ── schemas ───────────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
-    message:  str
-    history:  list[dict] = []
-    persona:  str        = "recruiter"   # recruiter | professor | tech_head
+    message:    str
+    history:    list[dict] = []
+    persona:    str        = "recruiter"
+    mode:       str        = "RACE"       # RACE | SINGLE | COMPETE
+    token:      str        = ""
+    session_id: str        = ""
 
 
 class ChatResponse(BaseModel):
@@ -128,6 +131,40 @@ async def chat(req: ChatRequest):
     if not req.message.strip():
         raise HTTPException(400, "Empty message")
 
+    # LOCAL mode — forward entire request to laptop Docker via Cloudflare Tunnel
+    if req.mode.upper() == "LOCAL":
+        import httpx, time
+        laptop_url = os.getenv("LAPTOP_URL", "").rstrip("/")
+        if not laptop_url:
+            return ChatResponse(
+                reply="Local SLM not connected — laptop tunnel is offline. Try RACE mode for cloud.",
+                provider="none", latency_ms=0, competition=[],
+            )
+        t0 = time.time()
+        try:
+            async with httpx.AsyncClient(timeout=120) as c:
+                r = await c.post(f"{laptop_url}/chat", json={
+                    "message":  req.message,
+                    "history":  req.history,
+                    "persona":  req.persona,
+                    "mode":     "RACE",
+                    "token":    req.token,
+                    "session_id": req.session_id,
+                })
+                r.raise_for_status()
+                data = r.json()
+                return ChatResponse(
+                    reply      = data["reply"],
+                    provider   = f"laptop·{data.get('provider', 'local')}",
+                    latency_ms = (time.time() - t0) * 1000,
+                    competition= data.get("competition", []),
+                )
+        except Exception as e:
+            return ChatResponse(
+                reply=f"Laptop is offline or unreachable. Switching to cloud — try RACE mode.",
+                provider="none", latency_ms=0, competition=[],
+            )
+
     messages = rag.build_prompt(req.message, req.history, req.persona)
 
     local_fn = None
@@ -136,7 +173,7 @@ async def chat(req: ChatRequest):
             return engine.generate(msgs)
         local_fn = _local_generate
 
-    result = await route(messages, local_fn=local_fn)
+    result = await route(messages, local_fn=local_fn, mode=req.mode)
 
     global _last_competition
     _last_competition = result.get("competition", [])

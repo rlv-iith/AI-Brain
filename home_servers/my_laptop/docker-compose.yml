@@ -11,6 +11,7 @@ services:
       - ../../.env:/app/.env
     environment:
       - USE_LOCAL_SLM=true
+      - RAG_MODE=semantic
     restart: unless-stopped
 
   # Exposes ai-brain to the internet — prints a public URL on startup

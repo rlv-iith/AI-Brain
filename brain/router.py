@@ -17,10 +17,7 @@ from .providers import available_cloud_providers, call_provider, ProviderResult
 
 logger = logging.getLogger(__name__)
 
-MODE = os.getenv("ROUTER_MODE", "RACE").upper()
-
-
-async def route(messages: list[dict], local_fn=None) -> dict:
+async def route(messages: list[dict], local_fn=None, mode: str | None = None) -> dict:
     """
     Returns:
         {
@@ -30,6 +27,7 @@ async def route(messages: list[dict], local_fn=None) -> dict:
             "competition": [ProviderResult, ...]  # COMPETE mode only
         }
     """
+    MODE = (mode or os.getenv("ROUTER_MODE", "RACE")).upper()
     cloud = available_cloud_providers()
 
     if MODE == "SINGLE":

@@ -169,6 +169,31 @@ async def _call_home_pc(messages: list[dict]) -> ProviderResult:
         return ProviderResult("home_pc", "", (time.time() - t0) * 1000, str(e), ok=False)
 
 
+async def _call_laptop(messages: list[dict]) -> ProviderResult:
+    """Laptop Docker AI Brain via Cloudflare Tunnel — local SLM + full RAG.
+    Set LAPTOP_URL to the tunnel URL printed by cloudflared on startup."""
+    import httpx
+    url = os.getenv("LAPTOP_URL", "").rstrip("/")
+    if not url:
+        return ProviderResult("laptop", "", 0, "LAPTOP_URL not set", ok=False)
+
+    user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    history  = [m for m in messages if m["role"] in ("user", "assistant")][:-1]
+
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=120) as c:
+            r = await c.post(
+                f"{url}/chat",
+                json={"message": user_msg, "history": history, "persona": "recruiter"},
+            )
+            r.raise_for_status()
+            reply = r.json()["reply"].strip()
+        return ProviderResult("laptop", reply, (time.time() - t0) * 1000)
+    except Exception as e:
+        return ProviderResult("laptop", "", (time.time() - t0) * 1000, str(e), ok=False)
+
+
 async def _call_xai(messages: list[dict]) -> ProviderResult:
     """xAI Grok — OpenAI-compatible API (key starts with xai-)"""
     import httpx
@@ -200,6 +225,7 @@ _CLOUD_PROVIDERS: dict[str, callable] = {
     "anthropic":   _call_anthropic,
     "xai":         _call_xai,
     "home_pc":     _call_home_pc,
+    "laptop":      _call_laptop,
 }
 
 
@@ -208,7 +234,7 @@ def available_cloud_providers() -> list[str]:
     active = [p.strip() for p in os.getenv("ACTIVE_PROVIDERS", "groq,gemini").split(",")]
     ready  = []
     for p in active:
-        if p == "home_pc" and os.getenv("HOME_PC_URL"):
+        if p in ("home_pc", "laptop") and os.getenv(f"{p.upper()}_URL"):
             ready.append(p)
         elif p in _CLOUD_PROVIDERS and os.getenv(f"{p.upper()}_API_KEY"):
             ready.append(p)

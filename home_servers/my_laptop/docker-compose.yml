@@ -1,0 +1,24 @@
+services:
+
+  ai-brain:
+    build:
+      context: ../..
+      dockerfile: home_servers/my_laptop/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../model_shards:/app/model_shards
+      - ../../.env:/app/.env
+    environment:
+      - USE_LOCAL_SLM=true
+    restart: unless-stopped
+
+  # Exposes ai-brain to the internet — prints a public URL on startup
+  # Copy that URL → paste into Render env vars as LAPTOP_URL
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://ai-brain:8000
+    depends_on:
+      - ai-brain
+    restart: unless-stopped
+

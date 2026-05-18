@@ -76,7 +76,7 @@ app = FastAPI(title="Portfolio AI Brain", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("ALLOWED_ORIGIN", "http://localhost:5173"), "*"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

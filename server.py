@@ -189,6 +189,7 @@ async def chat(req: ChatRequest):
         "providers_tried": providers_tried,
         "reply_preview":   result["reply"][:200],
         "full_reply":      result["reply"],
+        "competition":     result.get("competition", []),
     }))
 
     return ChatResponse(

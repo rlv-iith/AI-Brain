@@ -44,7 +44,10 @@ async def route(messages: list[dict], local_fn=None, mode: str | None = None) ->
             res = await call_provider(name, messages)
             if res.ok:
                 return {"reply": res.reply, "provider": res.provider,
-                        "latency_ms": res.latency, "competition": [res]}
+                        "latency_ms": res.latency, "competition": [
+                            {"provider": res.provider, "latency_ms": round(res.latency),
+                             "chars": len(res.reply), "ok": res.ok}
+                        ]}
         return _empty("all providers failed")
 
     if MODE == "RACE":
@@ -81,7 +84,10 @@ async def _race(messages, local_fn, cloud: list[str]) -> dict:
                         p.cancel()
                     logger.info(f"RACE winner: {res.provider} ({res.latency:.0f} ms)")
                     return {"reply": res.reply, "provider": res.provider,
-                            "latency_ms": res.latency, "competition": [res]}
+                            "latency_ms": res.latency, "competition": [
+                                {"provider": res.provider, "latency_ms": round(res.latency),
+                                 "chars": len(res.reply), "ok": res.ok}
+                            ]}
             except Exception as e:
                 logger.warning(f"Task error: {e}")
 

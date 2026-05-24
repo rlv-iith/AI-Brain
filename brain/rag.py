@@ -1,12 +1,10 @@
 """
-RAG Pipeline — two modes, controlled by RAG_MODE env var:
+RAG Pipeline — always builds fullcontext index (no ML needed).
+Also builds a semantic index when RAG_MODE=semantic (requires torch).
 
-  fullcontext  (default, Render)  — all knowledge files as one system prompt.
-                                    No ML needed. Works in 512 MB RAM.
-
-  semantic     (laptop Docker)    — sentence-transformers + cosine similarity.
-                                    Retrieves top-k relevant chunks per query.
-                                    Requires torch; set RAG_MODE=semantic in compose.
+  Cloud LLMs  → fullcontext: entire knowledge base injected as system prompt.
+  Local SLM   → semantic: only the top-k relevant chunks are retrieved,
+                keeping the prompt small enough for a tiny context window.
 """
 
 from __future__ import annotations
@@ -63,10 +61,9 @@ class RAGPipeline:
 
     def build(self):
         chunks = load_chunks()
+        self._build_fullcontext(chunks)          # always — cloud path needs this
         if RAG_MODE == "semantic":
-            self._build_semantic(chunks)
-        else:
-            self._build_fullcontext(chunks)
+            self._build_semantic(chunks)         # additionally — local SLM path
 
     def _build_fullcontext(self, chunks):
         parts = [f"[{c['source']}]\n{c['text']}" for c in chunks]
@@ -96,8 +93,8 @@ class RAGPipeline:
 
     # ── retrieve ───────────────────────────────────────────────────────────────
 
-    def retrieve(self, query: str, top_k: int = 4) -> str:
-        if RAG_MODE == "semantic" and self._matrix is not None:
+    def retrieve(self, query: str, top_k: int = 4, fullcontext: bool = False) -> str:
+        if not fullcontext and self._matrix is not None:
             import numpy as np
             q = self._embedder.encode([query], normalize_embeddings=True)
             scores = (self._matrix @ q.T).squeeze()
@@ -108,11 +105,11 @@ class RAGPipeline:
 
     # ── build_prompt ───────────────────────────────────────────────────────────
 
-    def build_prompt(self, query: str, history: list[dict], persona: str = "recruiter") -> list[dict]:
-        context = self.retrieve(query)
+    def build_prompt(self, query: str, history: list[dict], persona: str = "recruiter", fullcontext: bool = False) -> list[dict]:
+        context = self.retrieve(query, fullcontext=fullcontext)
         persona_ctx = _PERSONA_INSTRUCTIONS.get(persona, _PERSONA_INSTRUCTIONS["recruiter"])
 
-        context_label = "RETRIEVED CONTEXT" if RAG_MODE == "semantic" else "KNOWLEDGE BASE"
+        context_label = "KNOWLEDGE BASE" if fullcontext or self._matrix is None else "RETRIEVED CONTEXT"
 
         system = (
             "You are Lalith Vishnu R's personal AI pitch assistant, embedded in his portfolio website. "

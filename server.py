@@ -159,21 +159,24 @@ async def chat(req: ChatRequest):
                     latency_ms = (time.time() - t0) * 1000,
                     competition= data.get("competition", []),
                 )
-        except Exception as e:
+        except Exception:
             return ChatResponse(
-                reply=f"Laptop is offline or unreachable. Switching to cloud — try RACE mode.",
+                reply="Laptop is offline or unreachable. Switching to cloud — try RACE mode.",
                 provider="none", latency_ms=0, competition=[],
             )
 
-    messages = rag.build_prompt(req.message, req.history, req.persona)
+    # Cloud LLMs get the full knowledge base — large context windows handle it fine
+    cloud_messages = rag.build_prompt(req.message, req.history, req.persona, fullcontext=True)
 
     local_fn = None
     if engine and engine.is_ready():
-        def _local_generate(msgs):
-            return engine.generate(msgs)
+        # Local SLM gets only semantically retrieved chunks — tiny context window
+        local_messages = rag.build_prompt(req.message, req.history, req.persona, fullcontext=False)
+        def _local_generate(_):
+            return engine.generate(local_messages)
         local_fn = _local_generate
 
-    result = await route(messages, local_fn=local_fn, mode=req.mode)
+    result = await route(cloud_messages, local_fn=local_fn, mode=req.mode)
 
     global _last_competition
     _last_competition = result.get("competition", [])

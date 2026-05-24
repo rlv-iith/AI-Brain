@@ -46,7 +46,7 @@ async def _call_groq(messages: list[dict]) -> ProviderResult:
 async def _call_gemini(messages: list[dict]) -> ProviderResult:
     import httpx
     key   = os.getenv("GEMINI_API_KEY", "")
-    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview")
     # Convert OpenAI-style messages → Gemini parts
     sys_parts = [m["content"] for m in messages if m["role"] == "system"]
     chat_msgs = [{"role": "model" if m["role"] == "assistant" else "user",

@@ -111,6 +111,7 @@ def health():
         "cloud_providers": cloud,
         "router_mode":     os.getenv("ROUTER_MODE", "RACE"),
         "rag_chunks":      len(rag._chunks),
+        "rag_context_chars": len(rag._context),
     }
 
 

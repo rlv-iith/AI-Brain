@@ -34,7 +34,7 @@ async def _call_groq(messages: list[dict]) -> ProviderResult:
             r = await c.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "messages": messages, "max_tokens": 512},
+                json={"model": model, "messages": messages, "max_tokens": 1024},
             )
             r.raise_for_status()
             reply = r.json()["choices"][0]["message"]["content"].strip()
@@ -80,7 +80,7 @@ async def _call_mistral(messages: list[dict]) -> ProviderResult:
             r = await c.post(
                 "https://api.mistral.ai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "messages": messages, "max_tokens": 512},
+                json={"model": model, "messages": messages, "max_tokens": 1024},
             )
             r.raise_for_status()
             reply = r.json()["choices"][0]["message"]["content"].strip()
@@ -100,7 +100,7 @@ async def _call_openrouter(messages: list[dict]) -> ProviderResult:
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}",
                          "HTTP-Referer": "https://portfolio.rlv.dev"},
-                json={"model": model, "messages": messages, "max_tokens": 512},
+                json={"model": model, "messages": messages, "max_tokens": 1024},
             )
             r.raise_for_status()
             reply = r.json()["choices"][0]["message"]["content"].strip()
@@ -119,7 +119,7 @@ async def _call_cerebras(messages: list[dict]) -> ProviderResult:
             r = await c.post(
                 "https://api.cerebras.ai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "messages": messages, "max_tokens": 512},
+                json={"model": model, "messages": messages, "max_tokens": 1024},
             )
             r.raise_for_status()
             reply = r.json()["choices"][0]["message"]["content"].strip()
@@ -205,7 +205,7 @@ async def _call_xai(messages: list[dict]) -> ProviderResult:
             r = await c.post(
                 "https://api.x.ai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}"},
-                json={"model": model, "messages": messages, "max_tokens": 512},
+                json={"model": model, "messages": messages, "max_tokens": 1024},
             )
             r.raise_for_status()
             reply = r.json()["choices"][0]["message"]["content"].strip()
